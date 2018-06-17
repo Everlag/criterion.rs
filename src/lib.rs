@@ -419,6 +419,7 @@ pub struct Criterion {
     filter: Option<String>,
     report: Box<Report>,
     output_directory: String,
+    baseline_directory: String,
     measure_only: bool,
 }
 
@@ -466,6 +467,7 @@ impl Default for Criterion {
             plotting,
             filter: None,
             report: Box::new(Reports::new(reports)),
+            baseline_directory: "base".to_owned(),
             output_directory: "target/criterion".to_owned(),
             measure_only: false,
         }
@@ -663,6 +665,16 @@ impl Criterion {
                 .short("n")
                 .long("noplot")
                 .help("Disable plot and HTML generation."))
+            .arg(Arg::with_name("save-baseline")
+                .short("s")
+                .long("save-baseline")
+                .default_value("base")
+                .help("Save results under a named baseline."))
+            .arg(Arg::with_name("baseline")
+                .short("b")
+                .long("baseline")
+                .conflicts_with("save-baseline")
+                .help("Compare to a named baseline."))
             .arg(Arg::with_name("measure-only")
                 .long("measure-only")
                 .help("Only perform measurements; do no analysis or storage of results. This is useful eg. when profiling the benchmarks, to reduce clutter in the profiling data."))
@@ -709,6 +721,15 @@ scripts alongside the generated plots.
                 _ => self.plotting = Plotting::Disabled,
             }
         }
+
+        match matches.value_of("save-baseline") {
+            Some(dir) => self.baseline_directory = dir.to_owned(),
+            None => (),
+        };
+        match matches.value_of("baseline") {
+            Some(dir) => self.baseline_directory = dir.to_owned(),
+            None => (),
+        };
 
         let mut reports: Vec<Box<Report>> = vec![];
         reports.push(Box::new(CliReport::new(
