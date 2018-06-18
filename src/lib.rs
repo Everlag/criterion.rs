@@ -420,6 +420,7 @@ pub struct Criterion {
     report: Box<Report>,
     output_directory: String,
     baseline_directory: String,
+    save_baseline: bool,
     measure_only: bool,
 }
 
@@ -468,6 +469,7 @@ impl Default for Criterion {
             filter: None,
             report: Box::new(Reports::new(reports)),
             baseline_directory: "base".to_owned(),
+            save_baseline: true,
             output_directory: "target/criterion".to_owned(),
             measure_only: false,
         }
@@ -614,6 +616,24 @@ impl Criterion {
         }
     }
 
+    /// Sets the baseline for comparison and updating.
+    pub fn with_baseline(mut self, baseline: String) -> Criterion {
+        self.baseline_directory = baseline;
+        self
+    }
+
+    /// Enables overwriting the previous baseline.
+    pub fn update_baseline(mut self) -> Criterion {
+        self.save_baseline = true;
+        self
+    }
+
+    /// Prevents overwriting the previous baseline.
+    pub fn retain_baseline(mut self) -> Criterion {
+        self.save_baseline = false;
+        self
+    }
+
     /// Filters the benchmarks. Only benchmarks with names that contain the
     /// given string will be executed.
     pub fn with_filter<S: Into<String>>(mut self, filter: S) -> Criterion {
@@ -723,7 +743,10 @@ scripts alongside the generated plots.
         }
 
         match matches.value_of("save-baseline") {
-            Some(dir) => self.baseline_directory = dir.to_owned(),
+            Some(dir) => {
+                self.save_baseline = true;
+                self.baseline_directory = dir.to_owned();
+            }
             None => (),
         };
         match matches.value_of("baseline") {

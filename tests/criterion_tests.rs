@@ -7,11 +7,12 @@ extern crate walkdir;
 use criterion::{Benchmark, Criterion, Fun, ParameterizedBenchmark, Throughput};
 use serde_json::value::Value;
 use std::cell::RefCell;
+use std::cmp::max;
 use std::fs::File;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::rc::Rc;
-use std::time::Duration;
+use std::time::{Duration, SystemTime};
 use tempdir::TempDir;
 use walkdir::WalkDir;
 
@@ -77,6 +78,53 @@ fn has_python3() -> bool {
         .is_ok()
 }
 
+fn verify_file(dir: &PathBuf, path: &str) -> PathBuf {
+    let full_path = dir.join(path);
+    assert!(
+        full_path.is_file(),
+        "File {:?} does not exist or is not a file",
+        full_path
+    );
+    let metadata = full_path.metadata().unwrap();
+    assert!(metadata.len() > 0);
+    full_path
+}
+
+fn verify_json(dir: &PathBuf, path: &str) {
+    let full_path = verify_file(dir, path);
+    let f = File::open(full_path).unwrap();
+    serde_json::from_reader::<File, Value>(f).unwrap();
+}
+
+fn verify_svg(dir: &PathBuf, path: &str) {
+    verify_file(dir, path);
+}
+
+fn verify_html(dir: &PathBuf, path: &str) {
+    verify_file(dir, path);
+}
+
+fn verify_json_stats(dir: &PathBuf, baseline: String) {
+    verify_json(&dir, &format!("{}/estimates.json", baseline));
+    verify_json(&dir, &format!("{}/sample.json", baseline));
+    verify_json(&dir, &format!("{}/tukey.json", baseline));
+}
+
+fn latest_modified(dir: TempDir) -> SystemTime {
+    let mut newest_update: Option<SystemTime> = None;
+    for entry in WalkDir::new(dir.path().join("test_without_overwrite")) {
+        let entry = entry.ok().unwrap();
+        let modified = entry.metadata().unwrap().modified().unwrap();
+        newest_update = match newest_update {
+            Some(latest) => Some(max(latest, modified)),
+            None => Some(modified),
+        };
+    }
+
+    newest_update.expect("failed to find a single time in directory")
+
+}
+
 #[test]
 fn test_creates_directory() {
     let dir = temp_dir();
@@ -105,6 +153,31 @@ fn test_without_plots() {
             entry.unwrap().file_name()
         );
     }
+}
+
+#[test]
+fn test_new_baseline() {
+    let dir = temp_dir();
+    short_benchmark(&dir)
+        .with_baseline("some-baseline".to_owned())
+        .bench_function("test_new_baseline", |b| b.iter(|| 10));
+
+    unimplemented!();
+
+    // for entry in WalkDir::new(dir.path().join("test_without_plots")) {
+    //     let entry = entry.ok();
+    //     let is_svg = entry
+    //         .as_ref()
+    //         .and_then(|entry| entry.path().extension())
+    //         .and_then(|ext| ext.to_str())
+    //         .map(|ext| ext == "svg")
+    //         .unwrap_or(false);
+    //     assert!(
+    //         !is_svg,
+    //         "Found SVG file ({:?}) in output directory with plots disabled",
+    //         entry.unwrap().file_name()
+    //     );
+    // }
 }
 
 #[test]
@@ -314,38 +387,10 @@ fn test_output_files() {
         );
     }
 
-    fn verify_file(dir: &PathBuf, path: &str) -> PathBuf {
-        let full_path = dir.join(path);
-        assert!(
-            full_path.is_file(),
-            "File {:?} does not exist or is not a file",
-            full_path
-        );
-        let metadata = full_path.metadata().unwrap();
-        assert!(metadata.len() > 0);
-        full_path
-    }
-
-    fn verify_json(dir: &PathBuf, path: &str) {
-        let full_path = verify_file(dir, path);
-        let f = File::open(full_path).unwrap();
-        serde_json::from_reader::<File, Value>(f).unwrap();
-    }
-
-    fn verify_svg(dir: &PathBuf, path: &str) {
-        verify_file(dir, path);
-    }
-
-    fn verify_html(dir: &PathBuf, path: &str) {
-        verify_file(dir, path);
-    }
-
     for x in 0..2 {
         let dir = tempdir.path().join(format!("test_output/output_{}", x + 1));
 
-        verify_json(&dir, "new/estimates.json");
-        verify_json(&dir, "new/sample.json");
-        verify_json(&dir, "new/tukey.json");
+        verify_json_stats_output(&dir, "new".to_owned());
         verify_json(&dir, "change/estimates.json");
 
         if short_benchmark(&tempdir).can_plot() && cfg!(feature = "html_reports") {
