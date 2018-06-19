@@ -420,7 +420,7 @@ pub struct Criterion {
     report: Box<Report>,
     output_directory: String,
     baseline_directory: String,
-    save_baseline: bool,
+    expect_baseline: bool,
     measure_only: bool,
 }
 
@@ -469,7 +469,7 @@ impl Default for Criterion {
             filter: None,
             report: Box::new(Reports::new(reports)),
             baseline_directory: "base".to_owned(),
-            save_baseline: true,
+            expect_baseline: false,
             output_directory: "target/criterion".to_owned(),
             measure_only: false,
         }
@@ -624,13 +624,13 @@ impl Criterion {
 
     /// Enables overwriting the previous baseline.
     pub fn update_baseline(mut self) -> Criterion {
-        self.save_baseline = true;
+        self.expect_baseline = false;
         self
     }
 
     /// Prevents overwriting the previous baseline.
     pub fn retain_baseline(mut self) -> Criterion {
-        self.save_baseline = false;
+        self.expect_baseline = true;
         self
     }
 
@@ -743,14 +743,14 @@ scripts alongside the generated plots.
         }
 
         match matches.value_of("save-baseline") {
-            Some(dir) => {
-                self.save_baseline = true;
-                self.baseline_directory = dir.to_owned();
-            }
+            Some(dir) => self.baseline_directory = dir.to_owned(),
             None => (),
         };
         match matches.value_of("baseline") {
-            Some(dir) => self.baseline_directory = dir.to_owned(),
+            Some(dir) => {
+                self.expect_baseline = true;
+                self.baseline_directory = dir.to_owned();
+            },
             None => (),
         };
 
