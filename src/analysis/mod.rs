@@ -54,7 +54,7 @@ pub(crate) fn common<T>(
 
     criterion.report.analysis(id, report_context);
 
-    rename_new_dir_to_base(id.id(), &criterion.output_directory);
+    rename_new_dir_to_base(id.id(), &criterion.baseline_directory, &criterion.output_directory);
 
     let avg_times = iters
         .iter()
@@ -85,7 +85,7 @@ pub(crate) fn common<T>(
         &format!("{}/{}/new/estimates.json", criterion.output_directory, id)
     ));
 
-    let compare_data = if base_dir_exists(id, &criterion.output_directory) {
+    let compare_data = if base_dir_exists(id, &criterion.baseline_directory, &criterion.output_directory) {
         let result = compare::common(id, avg_times, config, criterion);
         match result {
             Ok((
@@ -135,10 +135,13 @@ pub(crate) fn common<T>(
     criterion
         .report
         .measurement_complete(id, report_context, &measurement_data);
+
+    // TODO: if we're NOT in retain mode, copy new to baseline
+    // rename_new_dir_to_base
 }
 
-fn base_dir_exists(id: &BenchmarkId, output_directory: &str) -> bool {
-    Path::new(&format!("{}/{}/base", output_directory, id)).exists()
+fn base_dir_exists(id: &BenchmarkId, baseline: &str, output_directory: &str) -> bool {
+    Path::new(&format!("{}/{}/{}", output_directory, id, baseline)).exists()
 }
 
 // Performs a simple linear regression on the sample
@@ -219,9 +222,9 @@ fn estimates(avg_times: &Sample<f64>, config: &BenchmarkConfig) -> (Distribution
     (distributions, estimates)
 }
 
-fn rename_new_dir_to_base(id: &str, output_directory: &str) {
+fn rename_new_dir_to_base(id: &str, baseline: &str, output_directory: &str) {
     let root_dir = Path::new(output_directory).join(id);
-    let base_dir = root_dir.join("base");
+    let base_dir = root_dir.join(baseline);
     let new_dir = root_dir.join("new");
 
     if base_dir.exists() {

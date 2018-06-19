@@ -380,6 +380,9 @@ impl BenchmarkDefinition for Benchmark {
                 self.throughput.clone(),
             );
 
+            // Make sure baseline directory exists before running
+            // if expect baseline truthy
+
             if c.filter_matches(id.id()) {
                 any_matched = true;
                 analysis::common(
