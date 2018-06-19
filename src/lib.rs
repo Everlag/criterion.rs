@@ -399,6 +399,16 @@ impl Bencher {
     }
 }
 
+/// Baseline describes how the baseline_directory is handled.
+pub enum Baseline {
+    /// Compare ensures a previous saved version of the baseline
+    /// exists and runs comparison against that.
+    Compare,
+    /// Save writes the benchmark results to the baseline directory,
+    /// overwriting any results that were previously there.
+    Save,
+}
+
 /// The benchmark manager
 ///
 /// `Criterion` lets you configure and execute benchmarks
@@ -420,7 +430,7 @@ pub struct Criterion {
     report: Box<Report>,
     output_directory: String,
     baseline_directory: String,
-    expect_baseline: bool,
+    baseline: Baseline,
     measure_only: bool,
 }
 
@@ -469,7 +479,7 @@ impl Default for Criterion {
             filter: None,
             report: Box::new(Reports::new(reports)),
             baseline_directory: "base".to_owned(),
-            expect_baseline: false,
+            baseline: Baseline::Save,
             output_directory: "target/criterion".to_owned(),
             measure_only: false,
         }
@@ -624,13 +634,13 @@ impl Criterion {
 
     /// Enables overwriting the previous baseline.
     pub fn update_baseline(mut self) -> Criterion {
-        self.expect_baseline = false;
+        self.baseline = Baseline::Save;
         self
     }
 
     /// Prevents overwriting the previous baseline.
     pub fn retain_baseline(mut self) -> Criterion {
-        self.expect_baseline = true;
+        self.baseline = Baseline::Compare;
         self
     }
 
@@ -743,14 +753,17 @@ scripts alongside the generated plots.
         }
 
         match matches.value_of("save-baseline") {
-            Some(dir) => self.baseline_directory = dir.to_owned(),
+            Some(dir) => {
+                self.baseline = Baseline::Save;
+                self.baseline_directory = dir.to_owned()
+            }
             None => (),
         };
         match matches.value_of("baseline") {
             Some(dir) => {
-                self.expect_baseline = true;
+                self.baseline = Baseline::Compare;
                 self.baseline_directory = dir.to_owned();
-            },
+            }
             None => (),
         };
 
