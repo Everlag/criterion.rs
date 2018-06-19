@@ -164,25 +164,27 @@ fn test_save_baseline() {
 
     let dir = dir.path().join(format!("test_save_baseline"));
     verify_json_stats(&dir, "some-baseline".to_owned());
-}
 
+    // TODO: ensure 'new' and 'some-baseline' have the exact
+    //       same contents
+}
 
 #[test]
 fn test_retain_baseline() {
     // Initial benchmark to populate
     let dir = temp_dir();
     short_benchmark(&dir)
-        .with_baseline("test_retain_baseline".to_owned())
+        .with_baseline("some-baseline".to_owned())
         .bench_function("test_retain_baseline", |b| b.iter(|| 10));
 
-    let pre_modified = latest_modified(&dir.path().join("test_retain_baseline"));
+    let pre_modified = latest_modified(&dir.path().join("test_retain_baseline/some-baseline"));
 
     short_benchmark(&dir)
-        .with_baseline("test_retain_baseline".to_owned())
+        .with_baseline("some-baseline".to_owned())
         .retain_baseline()
         .bench_function("test_retain_baseline", |b| b.iter(|| 10));
 
-    let post_modified = latest_modified(&dir.path().join("test_retain_baseline"));
+    let post_modified = latest_modified(&dir.path().join("test_retain_baseline/some-baseline"));
 
     assert_eq!(pre_modified, post_modified, "baseline modified by retain");
 }
