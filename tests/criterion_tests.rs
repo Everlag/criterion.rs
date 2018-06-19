@@ -159,11 +159,18 @@ fn test_without_plots() {
 fn test_save_baseline() {
     let dir = temp_dir();
     short_benchmark(&dir)
-        .with_baseline("test_save_baseline".to_owned())
+        .with_baseline("some-baseline".to_owned())
         .bench_function("test_save_baseline", |b| b.iter(|| 10));
 
-    let dir = dir.path().join(format!("test_save_baseline"));
-    verify_json_stats(&dir, "some-baseline".to_owned());
+
+    let dir = dir.path().join("test_save_baseline");
+    println!("looking in {:?}", dir);
+    println!("found:");
+    for entry in WalkDir::new(dir.join("some-baseline")) {
+        let entry = entry.unwrap();
+        println!("\t{:?}", entry.path());
+    }
+    // verify_json_stats(&dir, "some-baseline".to_owned());
 
     // TODO: ensure 'new' and 'some-baseline' have the exact
     //       same contents
@@ -187,6 +194,18 @@ fn test_retain_baseline() {
     let post_modified = latest_modified(&dir.path().join("test_retain_baseline/some-baseline"));
 
     assert_eq!(pre_modified, post_modified, "baseline modified by retain");
+}
+
+
+#[test]
+#[should_panic(expected = "Baseline directory must exist before comparison is allowed.")]
+fn test_compare_baseline() {
+    // Initial benchmark to populate
+    let dir = temp_dir();
+    short_benchmark(&dir)
+        .with_baseline("some-baseline".to_owned())
+        .retain_baseline()
+        .bench_function("test_compare_baseline", |b| b.iter(|| 10));
 }
 
 #[test]

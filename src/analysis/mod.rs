@@ -1,18 +1,18 @@
 use std::collections::BTreeMap;
 use std::path::Path;
 
-use stats::bivariate::Data;
 use stats::bivariate::regression::Slope;
-use stats::univariate::Sample;
+use stats::bivariate::Data;
 use stats::univariate::outliers::tukey::{self, LabeledSample};
+use stats::univariate::Sample;
 use stats::{Distribution, Tails};
 
 use benchmark::BenchmarkConfig;
 use estimate::{Distributions, Estimates, Statistic};
 use report::{BenchmarkId, ReportContext};
 use routine::Routine;
-use {ConfidenceInterval, Criterion, Estimate, Throughput};
 use {format, fs};
+use {Baseline, ConfidenceInterval, Criterion, Estimate, Throughput};
 
 macro_rules! elapsed {
     ($msg:expr, $block:expr) => {{
@@ -44,6 +44,17 @@ pub(crate) fn common<T>(
 ) {
     criterion.report.benchmark_start(id, report_context);
 
+    println!("baseline variant is {:?}",criterion.baseline);
+    if let Baseline::Compare = criterion.baseline {
+        if !base_dir_exists(
+                id,
+                &criterion.baseline_directory,
+                &criterion.output_directory,
+            ) {
+                panic!("Baseline directory must exist before comparison is allowed.");
+            }
+    }
+
     let (iters, times) = routine.sample(id, config, criterion, report_context, parameter);
 
     // In profiling mode, skip all of the analysis.
@@ -54,7 +65,11 @@ pub(crate) fn common<T>(
 
     criterion.report.analysis(id, report_context);
 
-    rename_new_dir_to_base(id.id(), &criterion.baseline_directory, &criterion.output_directory);
+    rename_new_dir_to_base(
+        id.id(),
+        &criterion.baseline_directory,
+        &criterion.output_directory,
+    );
 
     let avg_times = iters
         .iter()
@@ -85,7 +100,11 @@ pub(crate) fn common<T>(
         &format!("{}/{}/new/estimates.json", criterion.output_directory, id)
     ));
 
-    let compare_data = if base_dir_exists(id, &criterion.baseline_directory, &criterion.output_directory) {
+    let compare_data = if base_dir_exists(
+        id,
+        &criterion.baseline_directory,
+        &criterion.output_directory,
+    ) {
         let result = compare::common(id, avg_times, config, criterion);
         match result {
             Ok((
