@@ -400,7 +400,6 @@ impl Bencher {
 }
 
 /// Baseline describes how the baseline_directory is handled.
-#[derive(Debug)] // TODO: remove
 pub enum Baseline {
     /// Compare ensures a previous saved version of the baseline
     /// exists and runs comparison against that.

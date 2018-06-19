@@ -158,6 +158,7 @@ fn test_without_plots() {
 #[test]
 fn test_save_baseline() {
     let dir = temp_dir();
+    println!("tmp directory is {:?}", dir.path());
     short_benchmark(&dir)
         .with_baseline("some-baseline".to_owned())
         .bench_function("test_save_baseline", |b| b.iter(|| 10));
@@ -167,7 +168,7 @@ fn test_save_baseline() {
     println!("looking in {:?}", dir);
     println!("found:");
     for entry in WalkDir::new(dir.join("some-baseline")) {
-        let entry = entry.unwrap();
+        let entry = entry.expect("directory not empty");
         println!("\t{:?}", entry.path());
     }
     // verify_json_stats(&dir, "some-baseline".to_owned());
@@ -198,7 +199,7 @@ fn test_retain_baseline() {
 
 
 #[test]
-#[should_panic(expected = "Baseline directory must exist before comparison is allowed.")]
+#[should_panic(expected = "Baseline 'some-baseline' must exist before comparison is allowed.")]
 fn test_compare_baseline() {
     // Initial benchmark to populate
     let dir = temp_dir();

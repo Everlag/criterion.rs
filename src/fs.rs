@@ -36,6 +36,11 @@ pub fn mv(from: &Path, to: &Path) -> Result<()> {
     Ok(())
 }
 
+pub fn cp(from: &Path, to: &Path) -> Result<()> {
+    fs::copy(from, to)?;
+    Ok(())
+}
+
 pub fn rmrf(path: &Path) -> Result<()> {
     fs::remove_dir_all(path)?;
 

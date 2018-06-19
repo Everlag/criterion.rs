@@ -44,15 +44,17 @@ pub(crate) fn common<T>(
 ) {
     criterion.report.benchmark_start(id, report_context);
 
-    println!("baseline variant is {:?}",criterion.baseline);
     if let Baseline::Compare = criterion.baseline {
         if !base_dir_exists(
-                id,
-                &criterion.baseline_directory,
-                &criterion.output_directory,
-            ) {
-                panic!("Baseline directory must exist before comparison is allowed.");
-            }
+            id,
+            &criterion.baseline_directory,
+            &criterion.output_directory,
+        ) {
+            panic!(format!(
+                "Baseline '{}' must exist before comparison is allowed.",
+                criterion.baseline_directory
+            ));
+        }
     }
 
     let (iters, times) = routine.sample(id, config, criterion, report_context, parameter);
@@ -64,12 +66,6 @@ pub(crate) fn common<T>(
     }
 
     criterion.report.analysis(id, report_context);
-
-    rename_new_dir_to_base(
-        id.id(),
-        &criterion.baseline_directory,
-        &criterion.output_directory,
-    );
 
     let avg_times = iters
         .iter()
@@ -155,8 +151,13 @@ pub(crate) fn common<T>(
         .report
         .measurement_complete(id, report_context, &measurement_data);
 
-    // TODO: if we're NOT in retain mode, copy new to baseline
-    // rename_new_dir_to_base
+    if let Baseline::Save = criterion.baseline {
+        copy_new_dir_to_base(
+            id.id(),
+            &criterion.baseline_directory,
+            &criterion.output_directory,
+        );
+    }
 }
 
 fn base_dir_exists(id: &BenchmarkId, baseline: &str, output_directory: &str) -> bool {
@@ -252,4 +253,31 @@ fn rename_new_dir_to_base(id: &str, baseline: &str, output_directory: &str) {
     if new_dir.exists() {
         try_else_return!(fs::mv(&new_dir, &base_dir));
     };
+}
+
+fn copy_new_dir_to_base(id: &str, baseline: &str, output_directory: &str) {
+    let root_dir = Path::new(output_directory).join(id);
+    let base_dir = root_dir.join(baseline);
+    let new_dir = root_dir.join("new");
+
+    if !new_dir.exists() {
+        return;
+    };
+    if !base_dir.exists() {
+        try_else_return!(fs::mkdirp(&base_dir));
+    }
+
+    // TODO: consider using walkdir or similar to generically copy.
+    try_else_return!(fs::cp(
+        &new_dir.join("estimates.json"),
+        &base_dir.join("estimates.json")
+    ));
+    try_else_return!(fs::cp(
+        &new_dir.join("sample.json"),
+        &base_dir.join("sample.json")
+    ));
+    try_else_return!(fs::cp(
+        &new_dir.join("tukey.json"),
+        &base_dir.join("tukey.json")
+    ));
 }
