@@ -110,10 +110,10 @@ fn verify_json_stats(dir: &PathBuf, baseline: String) {
     verify_json(&dir, &format!("{}/tukey.json", baseline));
 }
 
-fn latest_modified(dir: TempDir) -> SystemTime {
+fn latest_modified(dir: &PathBuf) -> SystemTime {
     let mut newest_update: Option<SystemTime> = None;
-    for entry in WalkDir::new(dir.path().join("test_without_overwrite")) {
-        let entry = entry.ok().unwrap();
+    for entry in WalkDir::new(dir) {
+        let entry = entry.unwrap();
         let modified = entry.metadata().unwrap().modified().unwrap();
         newest_update = match newest_update {
             Some(latest) => Some(max(latest, modified)),
@@ -156,28 +156,35 @@ fn test_without_plots() {
 }
 
 #[test]
-fn test_new_baseline() {
+fn test_save_baseline() {
     let dir = temp_dir();
     short_benchmark(&dir)
-        .with_baseline("some-baseline".to_owned())
-        .bench_function("test_new_baseline", |b| b.iter(|| 10));
+        .with_baseline("test_save_baseline".to_owned())
+        .bench_function("test_save_baseline", |b| b.iter(|| 10));
 
-    unimplemented!();
+    let dir = dir.path().join(format!("test_save_baseline"));
+    verify_json_stats(&dir, "some-baseline".to_owned());
+}
 
-    // for entry in WalkDir::new(dir.path().join("test_without_plots")) {
-    //     let entry = entry.ok();
-    //     let is_svg = entry
-    //         .as_ref()
-    //         .and_then(|entry| entry.path().extension())
-    //         .and_then(|ext| ext.to_str())
-    //         .map(|ext| ext == "svg")
-    //         .unwrap_or(false);
-    //     assert!(
-    //         !is_svg,
-    //         "Found SVG file ({:?}) in output directory with plots disabled",
-    //         entry.unwrap().file_name()
-    //     );
-    // }
+
+#[test]
+fn test_retain_baseline() {
+    // Initial benchmark to populate
+    let dir = temp_dir();
+    short_benchmark(&dir)
+        .with_baseline("test_retain_baseline".to_owned())
+        .bench_function("test_retain_baseline", |b| b.iter(|| 10));
+
+    let pre_modified = latest_modified(&dir.path().join("test_retain_baseline"));
+
+    short_benchmark(&dir)
+        .with_baseline("test_retain_baseline".to_owned())
+        .retain_baseline()
+        .bench_function("test_retain_baseline", |b| b.iter(|| 10));
+
+    let post_modified = latest_modified(&dir.path().join("test_retain_baseline"));
+
+    assert_eq!(pre_modified, post_modified, "baseline modified by retain");
 }
 
 #[test]
@@ -390,7 +397,7 @@ fn test_output_files() {
     for x in 0..2 {
         let dir = tempdir.path().join(format!("test_output/output_{}", x + 1));
 
-        verify_json_stats_output(&dir, "new".to_owned());
+        verify_json_stats(&dir, "new".to_owned());
         verify_json(&dir, "change/estimates.json");
 
         if short_benchmark(&tempdir).can_plot() && cfg!(feature = "html_reports") {
