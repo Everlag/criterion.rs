@@ -703,6 +703,7 @@ impl Criterion {
             .arg(Arg::with_name("baseline")
                 .short("b")
                 .long("baseline")
+                .takes_value(true)
                 .conflicts_with("save-baseline")
                 .help("Compare to a named baseline."))
             .arg(Arg::with_name("measure-only")
