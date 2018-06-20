@@ -753,20 +753,14 @@ scripts alongside the generated plots.
             }
         }
 
-        match matches.value_of("save-baseline") {
-            Some(dir) => {
+        if let Some(dir) = matches.value_of("save-baseline") {
                 self.baseline = Baseline::Save;
                 self.baseline_directory = dir.to_owned()
-            }
-            None => (),
-        };
-        match matches.value_of("baseline") {
-            Some(dir) => {
+        }
+        if let Some(dir) = matches.value_of("baseline") {
                 self.baseline = Baseline::Compare;
                 self.baseline_directory = dir.to_owned();
-            }
-            None => (),
-        };
+        }
 
         let mut reports: Vec<Box<Report>> = vec![];
         reports.push(Box::new(CliReport::new(
