@@ -51,8 +51,8 @@ pub(crate) fn common<T>(
             &criterion.output_directory,
         ) {
             panic!(format!(
-                "Baseline '{}' must exist before comparison is allowed.",
-                criterion.baseline_directory
+                "Baseline '{base}' must exist before comparison is allowed; try --save-baseline {base}",
+                base=criterion.baseline_directory,
             ));
         }
     }

@@ -199,7 +199,7 @@ fn test_retain_baseline() {
 
 
 #[test]
-#[should_panic(expected = "Baseline 'some-baseline' must exist before comparison is allowed.")]
+#[should_panic(expected = "Baseline 'some-baseline' must exist before comparison is allowed")]
 fn test_compare_baseline() {
     // Initial benchmark to populate
     let dir = temp_dir();
