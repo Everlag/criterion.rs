@@ -242,19 +242,6 @@ fn estimates(avg_times: &Sample<f64>, config: &BenchmarkConfig) -> (Distribution
     (distributions, estimates)
 }
 
-fn rename_new_dir_to_base(id: &str, baseline: &str, output_directory: &str) {
-    let root_dir = Path::new(output_directory).join(id);
-    let base_dir = root_dir.join(baseline);
-    let new_dir = root_dir.join("new");
-
-    if base_dir.exists() {
-        try_else_return!(fs::rmrf(&base_dir));
-    }
-    if new_dir.exists() {
-        try_else_return!(fs::mv(&new_dir, &base_dir));
-    };
-}
-
 fn copy_new_dir_to_base(id: &str, baseline: &str, output_directory: &str) {
     let root_dir = Path::new(output_directory).join(id);
     let base_dir = root_dir.join(baseline);
