@@ -104,7 +104,7 @@ fn verify_html(dir: &PathBuf, path: &str) {
     verify_file(dir, path);
 }
 
-fn verify_json_stats(dir: &PathBuf, baseline: String) {
+fn verify_json_stats(dir: &PathBuf, baseline: &str) {
     verify_json(&dir, &format!("{}/estimates.json", baseline));
     verify_json(&dir, &format!("{}/sample.json", baseline));
     verify_json(&dir, &format!("{}/tukey.json", baseline));
@@ -167,7 +167,7 @@ fn test_save_baseline() {
         .bench_function("test_save_baseline", |b| b.iter(|| 10));
 
     let dir = dir.path().join("test_save_baseline");
-    verify_json_stats(&dir, "some-baseline".to_owned());
+    verify_json_stats(&dir, "some-baseline");
 
     verify_not_exists(&dir, "base");
 }
@@ -413,7 +413,7 @@ fn test_output_files() {
     for x in 0..2 {
         let dir = tempdir.path().join(format!("test_output/output_{}", x + 1));
 
-        verify_json_stats(&dir, "new".to_owned());
+        verify_json_stats(&dir, "new");
         verify_json(&dir, "change/estimates.json");
 
         if short_benchmark(&tempdir).can_plot() && cfg!(feature = "html_reports") {
