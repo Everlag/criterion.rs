@@ -110,6 +110,10 @@ fn verify_json_stats(dir: &PathBuf, baseline: String) {
     verify_json(&dir, &format!("{}/tukey.json", baseline));
 }
 
+fn verify_not_exists(dir: &PathBuf, path: &str) {
+    assert!(!dir.join(path).exists());
+}
+
 fn latest_modified(dir: &PathBuf) -> SystemTime {
     let mut newest_update: Option<SystemTime> = None;
     for entry in WalkDir::new(dir) {
@@ -122,7 +126,6 @@ fn latest_modified(dir: &PathBuf) -> SystemTime {
     }
 
     newest_update.expect("failed to find a single time in directory")
-
 }
 
 #[test]
@@ -163,18 +166,10 @@ fn test_save_baseline() {
         .with_baseline("some-baseline".to_owned())
         .bench_function("test_save_baseline", |b| b.iter(|| 10));
 
-
     let dir = dir.path().join("test_save_baseline");
-    println!("looking in {:?}", dir);
-    println!("found:");
-    for entry in WalkDir::new(dir.join("some-baseline")) {
-        let entry = entry.expect("directory not empty");
-        println!("\t{:?}", entry.path());
-    }
-    // verify_json_stats(&dir, "some-baseline".to_owned());
+    verify_json_stats(&dir, "some-baseline".to_owned());
 
-    // TODO: ensure 'new' and 'some-baseline' have the exact
-    //       same contents
+    verify_not_exists(&dir, "base");
 }
 
 #[test]
@@ -196,7 +191,6 @@ fn test_retain_baseline() {
 
     assert_eq!(pre_modified, post_modified, "baseline modified by retain");
 }
-
 
 #[test]
 #[should_panic(expected = "Baseline 'some-baseline' must exist before comparison is allowed")]
